@@ -1,0 +1,34 @@
+[package]
+name = "sailor"
+version = "0.0.0"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "sailor_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.0-beta", features = [] }
+
+[dependencies]
+cpal = "0.15.2"
+anyhow = "1.0.79"
+tauri = { version = "2.0.0-beta", features = [] }
+tauri-plugin-shell = "2.0.0-beta"
+tokio = { version = "1.38.0", features = ["sync"] }
+serde = { version = "1", features = ["derive", "alloc", "std"] }
+serde_json = "1"
+wavetable = { path = "../../../dsp/wavetable" }
+interpolation = { path = "../../../dsp/interpolation" }
+envelope = { path = "../../../dsp/envelope" }
+waveshape = { path = "../../../dsp/waveshape" }
+vector = { path = "../../../dsp/vector" }
+trig = { path = "../../../dsp/trig" }
+dsp = { path = "../../../dsp/dsp" }
+tauri-cli = "1.5.14"
+
+
