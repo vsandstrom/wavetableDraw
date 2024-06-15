@@ -18,11 +18,11 @@
   const makeCells = (_:any, i:number): cell => {return {id: i}};
   let cells: cell[] = Array.from({length: tablesize}, makeCells);
 
-  const setChild = async (child: HTMLElement, position: string) => {
+  const setChild = (child: HTMLElement, position: string) => {
       child.style.marginTop = position;
   }
 
-  const logPos = async (e: MouseEvent) => {
+  const logPos = (e: MouseEvent) => {
     if (e.buttons == 1) {
       let el = e.currentTarget as HTMLElement;
       let child = el.children[0] as HTMLElement;
@@ -32,12 +32,11 @@
       let id = el.textContent;
       if (id) {
         let val = 1 - (y / cellHeight);
-        // table[parseInt(id)] = y / cellHeight;
-        // invoke("sendTable", {size: tablesize});
-        invoke("send_table", {value: val, index: parseInt(id)});
+        invoke("update_table", {value: val, index: parseInt(id)});
       }
     }
   }
+
 </script>
 
 <div id="wavetray">

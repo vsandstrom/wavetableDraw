@@ -1,22 +1,20 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import WaveTable from "../lib/WaveTable.svelte";
+    import Controls from "$lib/Controls.svelte";
 
   let name = "";
   let greetMsg = "";
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    greetMsg = await invoke("greet", { name });
-  }
+  // async function trigger() {
+  //   await invoke("trigger", {value: true});
+  // }
 
-  async function trigger() {
-    await invoke("trigger", {value: true});
-  }
 
 </script>
 
-<button on:click={trigger}>TRIGGER ME</button>
+<!-- <button on:click={trigger}>TRIGGER ME</button> -->
+<Controls />
 <div class="container">
 <WaveTable />
   
@@ -73,10 +71,6 @@
 
   h1 {
     text-align: center;
-  }
-
-  #greet-input {
-    margin-right: 5px;
   }
 
   @media (prefers-color-scheme: dark) {

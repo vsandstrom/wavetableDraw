@@ -9,18 +9,38 @@ pub struct TableValue {
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+fn trigger(value: bool, state: State<SynthControl>) {
+  println!("yes");
+  state.trig_tx.send(value);
 }
 
 #[tauri::command]
-fn trigger(value: bool, state: State<TriggerTX>) {
-  state.tx.send(value);
+// fn send_table(value: f32, index: usize, state: State<TableValueTX>) {
+fn update_table(value: f32, index: usize, state: State<SynthControl>) {
+  state.table_tx.send(TableValue{value, index});
 }
 
 #[tauri::command]
-fn send_table(value: f32, index: usize, state: State<TableValueTX>) {
-  state.tx.send(TableValue{value, index});
+fn set_frequency(value: f32, state: State<SynthControl>) {
+  state.freq_tx.send(value);
+}
+
+#[tauri::command]
+fn set_volume(value: f32, state: State<SynthControl>) {
+  state.vol_tx.send(value);
+}
+
+#[tauri::command]
+fn set_interpolation(value: usize, state: State<SynthControl>) {
+  state.lerp_tx.send(value);
+}
+
+pub struct SynthControl {
+  pub trig_tx: Sender<bool>,
+  pub table_tx: Sender<TableValue>,
+  pub vol_tx: Sender<f32>,
+  pub freq_tx: Sender<f32>,
+  pub lerp_tx: Sender<usize>
 }
 
 struct TriggerTX {
@@ -32,15 +52,18 @@ struct TableValueTX {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run(tx: Sender<bool>, table_tx: Sender<TableValue>) -> anyhow::Result<()> {
+pub fn run(ctrl: SynthControl) -> anyhow::Result<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .manage(TriggerTX{tx})
-        .manage(TableValueTX{tx: table_tx})
+        .manage(ctrl)
+        // .manage(TriggerTX{tx})
+        // .manage(TableValueTX{tx: table_tx})
         .invoke_handler(tauri::generate_handler![
-          greet,
           trigger,
-          send_table
+          update_table,
+          set_volume,
+          set_frequency,
+          set_interpolation
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

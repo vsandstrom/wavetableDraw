@@ -7,12 +7,19 @@ use wavetable::WaveTable;
 use vector::VectorOscillator;
 use envelope::{BreakPoints, Envelope};
 use trig::{Dust, Impulse};
-use interpolation::interpolation::{Linear, Cubic};
+use interpolation::interpolation::{Floor, Linear, Cubic, Hermetic};
 
 fn main() -> anyhow::Result<()> {
   const SIZE: usize = 256;
   let (mut trig_tx, trig_rx) = std::sync::mpsc::channel::<bool>();
   let (mut table_tx, table_rx) = std::sync::mpsc::channel::<sailor_lib::TableValue>();
+  let (mut vol_tx, vol_rx) = std::sync::mpsc::channel::<f32>();
+  let (mut freq_tx, freq_rx) = std::sync::mpsc::channel::<f32>();
+  let (mut lerp_tx, lerp_rx) = std::sync::mpsc::channel::<usize>();
+
+  let ctrl = sailor_lib::SynthControl{trig_tx, table_tx, vol_tx, freq_tx, lerp_tx};
+
+
   let mut wavetable = [0.0f32; SIZE];
   let mut wt = WaveTable::new(&wavetable, 48000.0);
   // audio stream
@@ -47,6 +54,9 @@ fn main() -> anyhow::Result<()> {
     // let latency_samples = latency_frames as usize * config.channels as usize;
 
     // SETUP YOUR AUDIO PROCESSING STRUCTS HERE !!!! <-------------------------
+    let mut vol = 0.0;
+    let mut freq = 200.0;
+    let mut lerp = 1;
     let mut wt = WaveTable::new(&wavetable, f_sample_rate);
     let time_at_start = std::time::Instant::now();
     
@@ -73,6 +83,10 @@ fn main() -> anyhow::Result<()> {
         let mut ch = 0;
         let mut input_fell_behind = false;
         let mut out = 0.0;
+        if let Ok(v) =  vol_rx.try_recv() { vol = v; }
+        if let Ok(f) = freq_rx.try_recv() { freq = f; }
+        if let Ok(l) = lerp_rx.try_recv() { lerp = l; }
+
         for sample in data {
           // if let Ok(b) = trig_rx.try_recv() {
           //   if b { println!("yes!"); }
@@ -80,11 +94,17 @@ fn main() -> anyhow::Result<()> {
           if let Ok(t) = table_rx.try_recv() {
             wt.update_table((t.value * 2.0) - 1.0, t.index);
           }
-          if (ch == 0) {
-            out = wt.play::<Cubic>(200.0, 1.0);
+          if ch == 0 {
+            match lerp {
+              0 => out = wt.play::<Floor>(freq, 1.0),
+              1 => out = wt.play::<Linear>(freq, 1.0),
+              2 => out = wt.play::<Cubic>(freq, 1.0),
+              3 => out = wt.play::<Hermetic>(freq, 1.0),
+              _ => out = 0.0
+            }
           }
           ch = (ch + 1) % 2;
-          *sample = out;
+          *sample = out * vol;
         }
 
         if input_fell_behind { eprintln!("Input fell behind"); }
@@ -115,5 +135,5 @@ fn main() -> anyhow::Result<()> {
 
   });
 
-  sailor_lib::run(trig_tx, table_tx)
+  sailor_lib::run(ctrl)
 }
