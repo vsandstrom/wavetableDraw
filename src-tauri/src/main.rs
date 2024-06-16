@@ -11,7 +11,7 @@ use interpolation::interpolation::{Floor, Linear, Cubic, Hermetic};
 
 fn main() -> anyhow::Result<()> {
   const SIZE: usize = 256;
-  let (mut trig_tx, trig_rx) = std::sync::mpsc::channel::<bool>();
+  let (mut trig_tx, trig_rx) = std::sync::mpsc::channel::<f32>();
   let (mut table_tx, table_rx) = std::sync::mpsc::channel::<sailor_lib::TableValue>();
   let (mut vol_tx, vol_rx) = std::sync::mpsc::channel::<f32>();
   let (mut freq_tx, freq_rx) = std::sync::mpsc::channel::<f32>();
@@ -57,7 +57,15 @@ fn main() -> anyhow::Result<()> {
     let mut vol = 0.0;
     let mut freq = 200.0;
     let mut lerp = 1;
+    let mut trigger = 0.0;
     let mut wt = WaveTable::new(&wavetable, f_sample_rate);
+    let brk = BreakPoints{
+      values: [0.0, 1.0, 0.0],
+      durations: [1.2, 5.2], 
+      curves: Some([1.7, 0.7])
+    };
+    let mut env = Envelope::new(&brk, f_sample_rate);
+
     let time_at_start = std::time::Instant::now();
     
     // Create a channel to send and receive samples
@@ -86,6 +94,8 @@ fn main() -> anyhow::Result<()> {
         if let Ok(v) =  vol_rx.try_recv() { vol = v; }
         if let Ok(f) = freq_rx.try_recv() { freq = f; }
         if let Ok(l) = lerp_rx.try_recv() { lerp = l; }
+        if let Ok(t) = trig_rx.try_recv() { trigger = t; }
+        else { trigger = 0.0; }
 
         for sample in data {
           // if let Ok(b) = trig_rx.try_recv() {
@@ -104,7 +114,7 @@ fn main() -> anyhow::Result<()> {
             }
           }
           ch = (ch + 1) % 2;
-          *sample = out * vol;
+          *sample = out * vol * env.play::<Cubic>(trigger);
         }
 
         if input_fell_behind { eprintln!("Input fell behind"); }

@@ -17,7 +17,7 @@ const interpolation = (e: MouseEvent & { currentTarget: HTMLSelectElement }) => 
 }
 
   async function trigger() {
-    await invoke("trigger", {value: true});
+    await invoke("trigger", {value: 1.0});
   }
 
 </script>
@@ -36,11 +36,11 @@ const interpolation = (e: MouseEvent & { currentTarget: HTMLSelectElement }) => 
   <label for="volume">VOLUME</label>
   <input 
     bind:value={freq} 
-    on:input={frequency}
+    on:change={frequency}
     id="frequency"
-    type="range" 
+    type="number" 
     min="18.0"
-    max="2000.0"
+    max="400.0"
     step="any"
   >
   <label for="frequency">FREQ</label>

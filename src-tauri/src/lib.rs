@@ -9,8 +9,7 @@ pub struct TableValue {
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
-fn trigger(value: bool, state: State<SynthControl>) {
-  println!("yes");
+fn trigger(value: f32, state: State<SynthControl>) {
   state.trig_tx.send(value);
 }
 
@@ -36,7 +35,7 @@ fn set_interpolation(value: usize, state: State<SynthControl>) {
 }
 
 pub struct SynthControl {
-  pub trig_tx: Sender<bool>,
+  pub trig_tx: Sender<f32>,
   pub table_tx: Sender<TableValue>,
   pub vol_tx: Sender<f32>,
   pub freq_tx: Sender<f32>,
