@@ -7,6 +7,11 @@ pub struct TableValue {
   pub index: usize
 }
 
+pub struct EnvValue {
+  pub value: f32,
+  pub index: usize
+}
+
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
 fn trigger(value: f32, state: State<SynthControl>) {
@@ -34,12 +39,23 @@ fn set_interpolation(value: usize, state: State<SynthControl>) {
   state.lerp_tx.send(value);
 }
 
+#[tauri::command]
+fn set_attack(value: f32, state: State<SynthControl>) {
+  state.env_tx.send(EnvValue{value, index: 0});
+}
+
+#[tauri::command]
+fn set_release(value: f32, state: State<SynthControl>) {
+  state.env_tx.send(EnvValue{value, index: 1});
+}
+
 pub struct SynthControl {
   pub trig_tx: Sender<f32>,
   pub table_tx: Sender<TableValue>,
   pub vol_tx: Sender<f32>,
   pub freq_tx: Sender<f32>,
-  pub lerp_tx: Sender<usize>
+  pub lerp_tx: Sender<usize>,
+  pub env_tx: Sender<EnvValue>
 }
 
 struct TriggerTX {
@@ -62,7 +78,10 @@ pub fn run(ctrl: SynthControl) -> anyhow::Result<()> {
           update_table,
           set_volume,
           set_frequency,
-          set_interpolation
+          set_interpolation,
+          set_attack,
+          set_release
+
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

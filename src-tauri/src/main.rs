@@ -16,8 +16,9 @@ fn main() -> anyhow::Result<()> {
   let (mut vol_tx, vol_rx) = std::sync::mpsc::channel::<f32>();
   let (mut freq_tx, freq_rx) = std::sync::mpsc::channel::<f32>();
   let (mut lerp_tx, lerp_rx) = std::sync::mpsc::channel::<usize>();
+  let (mut env_tx, env_rx) = std::sync::mpsc::channel::<sailor_lib::EnvValue>();
 
-  let ctrl = sailor_lib::SynthControl{trig_tx, table_tx, vol_tx, freq_tx, lerp_tx};
+  let ctrl = sailor_lib::SynthControl{trig_tx, table_tx, vol_tx, freq_tx, lerp_tx, env_tx};
 
 
   let mut wavetable = [0.0f32; SIZE];
@@ -59,16 +60,13 @@ fn main() -> anyhow::Result<()> {
     let mut lerp = 1;
     let mut trigger = 0.0;
     let mut wt = WaveTable::new(&wavetable, f_sample_rate);
-    let brk = BreakPoints{
+    let mut brk = BreakPoints{
       values: [0.0, 1.0, 0.0],
-      durations: [1.2, 5.2], 
+      durations: [0.1, 1.0], 
       curves: Some([1.7, 0.7])
     };
     let mut env = Envelope::new(&brk, f_sample_rate);
 
-    let time_at_start = std::time::Instant::now();
-    
-    // Create a channel to send and receive samples
     let (tx, rx) = std::sync::mpsc::channel::<f32>();
 
     // Callbacks
@@ -91,19 +89,20 @@ fn main() -> anyhow::Result<()> {
         let mut ch = 0;
         let mut input_fell_behind = false;
         let mut out = 0.0;
+        // ONCE A BLOCK
         if let Ok(v) =  vol_rx.try_recv() { vol = v; }
         if let Ok(f) = freq_rx.try_recv() { freq = f; }
         if let Ok(l) = lerp_rx.try_recv() { lerp = l; }
         if let Ok(t) = trig_rx.try_recv() { trigger = t; }
         else { trigger = 0.0; }
+        if let Ok(e) = env_rx.try_recv() { 
+          brk.durations[e.index] = e.value;
+          env.new_shape(&brk, f_sample_rate);
+        }
 
         for sample in data {
-          // if let Ok(b) = trig_rx.try_recv() {
-          //   if b { println!("yes!"); }
-          // }
-          if let Ok(t) = table_rx.try_recv() {
-            wt.update_table((t.value * 2.0) - 1.0, t.index);
-          }
+          // EVERY SAMPLE
+          if let Ok(t) = table_rx.try_recv() { wt.update_table((t.value * 2.0) - 1.0, t.index); }
           if ch == 0 {
             match lerp {
               0 => out = wt.play::<Floor>(freq, 1.0),
@@ -141,7 +140,9 @@ fn main() -> anyhow::Result<()> {
     input_stream.play().expect("unable to init play input stream");
     output_stream.play().expect("unable to init play output stream");
 
-    thread::sleep(time::Duration::from_secs(1000));
+    loop{
+      thread::sleep(time::Duration::from_secs(1000));
+    }
 
   });
 
