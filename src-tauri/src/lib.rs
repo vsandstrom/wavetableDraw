@@ -1,5 +1,5 @@
-use tauri::{AppHandle, State};
-use std::sync::{Mutex, Arc, mpsc::Sender};
+use tauri::{State};
+use std::sync::mpsc::Sender;
 
 #[derive(Debug)]
 pub struct TableValue {
@@ -15,38 +15,38 @@ pub struct EnvValue {
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
 fn trigger(value: f32, state: State<SynthControl>) {
-  state.trig_tx.send(value);
+  let _ = state.trig_tx.send(value);
 }
 
 #[tauri::command]
 // fn send_table(value: f32, index: usize, state: State<TableValueTX>) {
 fn update_table(value: f32, index: usize, state: State<SynthControl>) {
-  state.table_tx.send(TableValue{value, index});
+  let _ = state.table_tx.send(TableValue{value, index});
 }
 
 #[tauri::command]
 fn set_frequency(value: f32, state: State<SynthControl>) {
-  state.freq_tx.send(value);
+  let _ = state.freq_tx.send(value);
 }
 
 #[tauri::command]
 fn set_volume(value: f32, state: State<SynthControl>) {
-  state.vol_tx.send(value);
+  let _ = state.vol_tx.send(value);
 }
 
 #[tauri::command]
 fn set_interpolation(value: usize, state: State<SynthControl>) {
-  state.lerp_tx.send(value);
+  let _ = state.lerp_tx.send(value);
 }
 
 #[tauri::command]
 fn set_attack(value: f32, state: State<SynthControl>) {
-  state.env_tx.send(EnvValue{value, index: 0});
+  let _ = state.env_tx.send(EnvValue{value, index: 0});
 }
 
 #[tauri::command]
 fn set_release(value: f32, state: State<SynthControl>) {
-  state.env_tx.send(EnvValue{value, index: 1});
+  let _ = state.env_tx.send(EnvValue{value, index: 1});
 }
 
 pub struct SynthControl {
@@ -58,21 +58,11 @@ pub struct SynthControl {
   pub env_tx: Sender<EnvValue>
 }
 
-struct TriggerTX {
-  tx: Sender<bool>
-}
-
-struct TableValueTX {
-  tx: Sender<TableValue>
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run(ctrl: SynthControl) -> anyhow::Result<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(ctrl)
-        // .manage(TriggerTX{tx})
-        // .manage(TableValueTX{tx: table_tx})
         .invoke_handler(tauri::generate_handler![
           trigger,
           update_table,

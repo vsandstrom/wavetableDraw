@@ -4,25 +4,21 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::{thread, time};
 use wavetable::WaveTable;
-use vector::VectorOscillator;
 use envelope::{BreakPoints, Envelope};
-use trig::{Dust, Impulse};
 use interpolation::interpolation::{Floor, Linear, Cubic, Hermetic};
 
 fn main() -> anyhow::Result<()> {
   const SIZE: usize = 256;
-  let (mut trig_tx, trig_rx) = std::sync::mpsc::channel::<f32>();
-  let (mut table_tx, table_rx) = std::sync::mpsc::channel::<sailor_lib::TableValue>();
-  let (mut vol_tx, vol_rx) = std::sync::mpsc::channel::<f32>();
-  let (mut freq_tx, freq_rx) = std::sync::mpsc::channel::<f32>();
-  let (mut lerp_tx, lerp_rx) = std::sync::mpsc::channel::<usize>();
-  let (mut env_tx, env_rx) = std::sync::mpsc::channel::<sailor_lib::EnvValue>();
+  let (trig_tx, trig_rx) = std::sync::mpsc::channel::<f32>();
+  let (table_tx, table_rx) = std::sync::mpsc::channel::<sailor_lib::TableValue>();
+  let (vol_tx, vol_rx) = std::sync::mpsc::channel::<f32>();
+  let (freq_tx, freq_rx) = std::sync::mpsc::channel::<f32>();
+  let (lerp_tx, lerp_rx) = std::sync::mpsc::channel::<usize>();
+  let (env_tx, env_rx) = std::sync::mpsc::channel::<sailor_lib::EnvValue>();
 
   let ctrl = sailor_lib::SynthControl{trig_tx, table_tx, vol_tx, freq_tx, lerp_tx, env_tx};
 
 
-  let mut wavetable = [0.0f32; SIZE];
-  let mut wt = WaveTable::new(&wavetable, 48000.0);
   // audio stream
 
   std::thread::spawn(move || {
@@ -59,6 +55,8 @@ fn main() -> anyhow::Result<()> {
     let mut freq = 200.0;
     let mut lerp = 1;
     let mut trigger = 0.0;
+  
+    let wavetable = [0.0f32; SIZE];
     let mut wt = WaveTable::new(&wavetable, f_sample_rate);
     let mut brk = BreakPoints{
       values: [0.0, 1.0, 0.0],
@@ -102,7 +100,9 @@ fn main() -> anyhow::Result<()> {
 
         for sample in data {
           // EVERY SAMPLE
-          if let Ok(t) = table_rx.try_recv() { wt.update_table((t.value * 2.0) - 1.0, t.index); }
+          if let Ok(t) = table_rx.try_recv() { 
+            let _ = wt.update_table((t.value * 2.0) - 1.0, t.index); 
+          }
           if ch == 0 {
             match lerp {
               0 => out = wt.play::<Floor>(freq, 1.0),

@@ -17,18 +17,19 @@ tauri-build = { version = "2.0.0-beta", features = [] }
 [dependencies]
 cpal = "0.15.2"
 anyhow = "1.0.79"
+serde = { version = "1", features = ["derive", "alloc", "std"] }
+serde_json = "1"
 tauri = { version = "2.0.0-beta", features = [] }
 tauri-plugin-shell = "2.0.0-beta"
 tokio = { version = "1.38.0", features = ["sync"] }
-serde = { version = "1", features = ["derive", "alloc", "std"] }
-serde_json = "1"
-wavetable = { path = "../../../dsp/wavetable" }
-interpolation = { path = "../../../dsp/interpolation" }
-envelope = { path = "../../../dsp/envelope" }
-waveshape = { path = "../../../dsp/waveshape" }
-vector = { path = "../../../dsp/vector" }
-trig = { path = "../../../dsp/trig" }
-dsp = { path = "../../../dsp/dsp" }
+wavetable = { path = "../rust_dsp/wavetable" }
+interpolation = { path = "../rust_dsp/interpolation" }
+envelope = { path = "../rust_dsp/envelope" }
+waveshape = { path = "../rust_dsp/waveshape" }
+vector = { path = "../rust_dsp/vector" }
+trig = { path = "../rust_dsp/trig" }
+dsp = { path = "../rust_dsp/dsp" }
 tauri-cli = "1.5.14"
+atomic_float = "1.0.0"
 
 
