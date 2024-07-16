@@ -3,9 +3,12 @@
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::{thread, time};
-use wavetable::WaveTable;
-use envelope::{BreakPoints, Envelope};
-use interpolation::interpolation::{Floor, Linear, Cubic, Hermetic};
+
+use rust_dsp::{
+  wavetable::owned::WaveTable,
+  envelope::{BreakPoints, Envelope, EnvType},
+  interpolation::{Floor, Linear, Cubic, Hermetic},
+};
 
 fn main() -> anyhow::Result<()> {
   const SIZE: usize = 256;
@@ -63,7 +66,7 @@ fn main() -> anyhow::Result<()> {
       durations: [0.1, 1.0], 
       curves: Some([1.7, 0.7])
     };
-    let mut env = Envelope::new(&brk, f_sample_rate);
+    let mut env = Envelope::new(&EnvType::BreakPoint(brk), f_sample_rate);
 
     let (tx, rx) = std::sync::mpsc::channel::<f32>();
 
@@ -95,7 +98,7 @@ fn main() -> anyhow::Result<()> {
         else { trigger = 0.0; }
         if let Ok(e) = env_rx.try_recv() { 
           brk.durations[e.index] = e.value;
-          env.new_shape(&brk, f_sample_rate);
+          env.new_shape(&EnvType::BreakPoint(brk), f_sample_rate);
         }
 
         for sample in data {
