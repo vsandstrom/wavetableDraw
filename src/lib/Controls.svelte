@@ -59,7 +59,7 @@
       <option value={0}>None</option>
       <option value={1} selected>Linear</option>
       <option value={2}>Cubic</option>
-      <option value={3}>Hermetic</option>
+      <option value={3}>Hermite</option>
     </select>
   </div>
   <div>

@@ -5,9 +5,9 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::{thread, time};
 
 use rust_dsp::{
-  wavetable::owned::WaveTable,
+  wavetable::shared::Wavetable,
   envelope::{BreakPoints, Envelope, EnvType},
-  interpolation::{Floor, Linear, Cubic, Hermetic},
+  interpolation::{Floor, Linear, Cubic, Hermite},
 };
 
 fn main() -> anyhow::Result<()> {
@@ -59,8 +59,9 @@ fn main() -> anyhow::Result<()> {
     let mut lerp = 1;
     let mut trigger = 0.0;
   
-    let wavetable = [0.0f32; SIZE];
-    let mut wt = WaveTable::new(&wavetable, f_sample_rate);
+    let mut wavetable = [0.0f32; SIZE];
+    let mut wt = Wavetable::new();
+    wt.set_samplerate(f_sample_rate);
     let mut brk = BreakPoints{
       values: [0.0, 1.0, 0.0],
       durations: [0.1, 1.0], 
@@ -76,10 +77,7 @@ fn main() -> anyhow::Result<()> {
         let mut output_fell_behind = false;
         for &sample in data {
           // Send input data to the output callback, or do any processing
-          match tx.send(sample) {
-            Err(_) => output_fell_behind = true,
-            _ => ()
-          }
+          if tx.send(sample).is_err() { output_fell_behind = true }
         }
 
         if output_fell_behind { eprintln!("Output fell behind"); }
@@ -104,14 +102,14 @@ fn main() -> anyhow::Result<()> {
         for sample in data {
           // EVERY SAMPLE
           if let Ok(t) = table_rx.try_recv() { 
-            let _ = wt.update_table((t.value * 2.0) - 1.0, t.index); 
+            wavetable[t.index]= t.value * 2.0 - 1.0;
           }
           if ch == 0 {
             match lerp {
-              0 => out = wt.play::<Floor>(freq, 1.0),
-              1 => out = wt.play::<Linear>(freq, 1.0),
-              2 => out = wt.play::<Cubic>(freq, 1.0),
-              3 => out = wt.play::<Hermetic>(freq, 1.0),
+              0 => out = wt.play::<Floor>(&wavetable,freq, 1.0),
+              1 => out = wt.play::<Linear>(&wavetable,freq, 1.0),
+              2 => out = wt.play::<Cubic>(&wavetable,freq, 1.0),
+              3 => out = wt.play::<Hermite>(&wavetable,freq, 1.0),
               _ => out = 0.0
             }
           }
